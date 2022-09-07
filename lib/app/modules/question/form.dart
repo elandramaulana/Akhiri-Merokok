@@ -24,6 +24,8 @@ class FormRokok extends StatefulWidget {
 class _FormRokokState extends State<FormRokok> {
   final List<String> _gender = ['pria', 'wanita'];
   final List<String> _jenisRokok = ['kretek', 'putih', 'campuran', 'elektrik'];
+  String? selected_jenisRokok = 'Kretek';
+  String? selected_gender = 'pria';
   final _formKey = GlobalKey<FormState>();
 
   String? _currentGender;
@@ -97,7 +99,7 @@ class _FormRokokState extends State<FormRokok> {
                   height: 30.h,
                 ),
                 DropdownButtonFormField(
-                    value: _gender[0],
+                    value: selected_gender,
                     items: _gender.map((gender) {
                       return DropdownMenuItem(
                         value: gender,
@@ -231,7 +233,7 @@ class _FormRokokState extends State<FormRokok> {
                   height: 16.h,
                 ),
                 DropdownButtonFormField(
-                    value: _jenisRokok[0],
+                    value: selected_jenisRokok,
                     items: _jenisRokok.map((jenisRokok) {
                       return DropdownMenuItem(
                         value: jenisRokok,

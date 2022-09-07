@@ -26,4 +26,7 @@ class FirestoreField {
   static const String answer5 = "usia";
   static const String answer6 = "usia";
   static const String answer7 = "usia";
+
+  static const String tanggal = "tanggal";
+  static const String jumlahDaily = "jumlah";
 }

@@ -1,16 +1,11 @@
 import 'package:akhiri_merokok/app/modules/home/navbar.dart';
-import 'package:akhiri_merokok/app/modules/profile/profile_view.dart';
-import 'package:akhiri_merokok/app/modules/question/question1.dart';
 import 'package:akhiri_merokok/app/modules/signup/signup_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
-import 'package:akhiri_merokok/app/modules/home/home_view.dart';
-import 'package:akhiri_merokok/app/modules/signin/signin_view.dart';
 
 import '../../../core/utils/keys.dart';
-import '../../modules/question/form.dart';
 import '../models/users.dart';
 
 class AuthController extends GetxController {

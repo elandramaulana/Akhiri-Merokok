@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../firestore/bucket_firestore.dart';
 import '../../../firestore/field_firestore.dart';
 import '../home/navbar.dart';
+import '../question/form.dart';
 
 class Profile extends StatefulWidget {
   const Profile({Key? key}) : super(key: key);
@@ -232,8 +233,27 @@ class _ProfileState extends State<Profile> {
                         },
                         itemCount: snapshots.data!.docs.length);
                   } else {
-                    return const Center(
-                      child: Text("Document aren't available"),
+                    return Column(
+                      children: [
+                        SizedBox(height: 100.h),
+                        Text(
+                          "Document aren't available",
+                          style: Get.theme.textTheme.headline2,
+                        ),
+                        SizedBox(height: 20.h),
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: ElevatedButton(
+                              onPressed: () {
+                                Get.offAll(() => FormRokok());
+                              },
+                              child: Text('Lengkapi Data'),
+                              style: ElevatedButton.styleFrom(
+                                primary: Colors.orange,
+                                onPrimary: Colors.white,
+                              )),
+                        ),
+                      ],
                     );
                   }
                 } else {
@@ -257,53 +277,3 @@ Widget imageProfile() {
     ]),
   );
 }
-
-  // Widget bottomSheet() {
-  //   return Container(
-  //     height: 100.0,
-  //     width: MediaQuery.of(context).size.width,
-  //     margin: EdgeInsets.symmetric(
-  //       horizontal: 20,
-  //       vertical: 20,
-  //     ),
-  //     child: Column(
-  //       children: <Widget>[
-  //         Text(
-  //           "Choose Profile photo",
-  //           style: TextStyle(
-  //             fontSize: 20.0,
-  //           ),
-  //         ),
-  //         SizedBox(
-  //           height: 20,
-  //         ),
-  //         Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-  //           FlatButton.icon(
-  //             icon: Icon(Icons.camera),
-  //             onPressed: () {
-  //               takePhoto(ImageSource.camera);
-  //             },
-  //             label: Text("Camera"),
-  //           ),
-  //           FlatButton.icon(
-  //             icon: Icon(Icons.image),
-  //             onPressed: () {
-  //               takePhoto(ImageSource.gallery);
-  //             },
-  //             label: Text("Gallery"),
-  //           ),
-  //         ])
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  // void takePhoto(ImageSource source) async {
-  //   final pickedFile = await _picker.getImage(
-  //     source: source,
-  //   );
-  //   setState(() {
-  //     _imageFile = pickedFile;
-  //   });
-  // }
-

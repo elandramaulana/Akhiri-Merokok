@@ -17,7 +17,7 @@ class _Navbar extends State<Navbar> {
   int tabIndex = 0;
   final List<Widget> _children = [
     const HomeView(),
-    const Statistic(),
+    Statistic(),
     const Konsultasi(),
   ];
 
