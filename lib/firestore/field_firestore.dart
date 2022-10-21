@@ -1,6 +1,7 @@
 class FirestoreField {
   static const String email = "email";
   static const String uid = "uid";
+  static const String timestamp = "timestamp";
 
   static const String nama = "nama";
   static const String gender = "jenis_kelamin";

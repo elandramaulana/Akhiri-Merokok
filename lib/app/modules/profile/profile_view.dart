@@ -40,228 +40,398 @@ class _ProfileState extends State<Profile> {
           ),
           centerTitle: true,
         ),
-        body: SafeArea(
-          child: StreamBuilder(
-              stream: FirebaseFirestore.instance
-                  .collection(FirestoreBucket.users)
-                  .doc(user.uid)
-                  .collection(FirestoreBucket.form)
-                  .snapshots(),
-              builder: (_,
-                  AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>>
-                      snapshots) {
-                if (snapshots.hasData && snapshots.data != null) {
-                  if (snapshots.data!.docs.isNotEmpty) {
-                    return ListView.separated(
-                        itemBuilder: (____, int index) {
-                          Map<String, dynamic> docData =
-                              snapshots.data!.docs[index].data();
+        body: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: SafeArea(
+            child: StreamBuilder(
+                stream: FirebaseFirestore.instance
+                    .collection(FirestoreBucket.users)
+                    .doc(user.uid)
+                    .collection(FirestoreBucket.form)
+                    .snapshots(),
+                builder: (_,
+                    AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>>
+                        snapshots) {
+                  if (snapshots.hasData && snapshots.data != null) {
+                    if (snapshots.data!.docs.isNotEmpty) {
+                      return ListView.separated(
+                          itemBuilder: (____, int index) {
+                            Map<String, dynamic> docData =
+                                snapshots.data!.docs[index].data();
 
-                          if (docData.isEmpty) {
-                            return const Text(
-                              'Document is Empty',
-                              textAlign: TextAlign.center,
+                            if (docData.isEmpty) {
+                              return const Text(
+                                'Document is Empty',
+                                textAlign: TextAlign.center,
+                              );
+                            }
+
+                            String nama = docData[FirestoreField.nama];
+                            String usia = docData[FirestoreField.usia];
+                            int nilai1 = docData[FirestoreField.nilai1];
+                            int nilai2 = docData[FirestoreField.nilai2];
+                            int nilai3 = docData[FirestoreField.nilai3];
+                            int nilai4 = docData[FirestoreField.nilai4];
+                            int nilai5 = docData[FirestoreField.nilai5];
+                            int nilai6 = docData[FirestoreField.nilai6];
+                            var a = docData[FirestoreField.lamaMerokok];
+                            var b = docData[FirestoreField.jumlahKonsumsi];
+
+                            int level = nilai1 +
+                                nilai2 +
+                                nilai3 +
+                                nilai4 +
+                                nilai5 +
+                                nilai6;
+
+                            String addict1 = "";
+
+                            if (level < 2) {
+                              String addict = "Ketergantungan rendah";
+                              addict1 = addict;
+                            } else if (level < 4) {
+                              String addict =
+                                  "Ketergantungan rendah hingga sedang";
+                              addict1 = addict;
+                            } else if (level < 7) {
+                              String addict = "Ketergantungan sedang";
+                              addict1 = addict;
+                            } else {
+                              String addict = "Ketergantungan tinggi";
+                              addict1 = addict;
+                            }
+
+                            var lamaMerokok = int.parse(a);
+                            var jumlahKonsumsi = int.parse(b);
+
+                            int durasi = lamaMerokok * jumlahKonsumsi;
+
+                            String interval1 = "";
+
+                            if (durasi < 200) {
+                              String interval = "Perokok Ringan";
+                              interval1 = interval;
+                            } else if (durasi < 600) {
+                              String interval = "Perokok Sedang";
+                              interval1 = interval;
+                            } else {
+                              String interval = "Perokok Berat";
+                              interval1 = interval;
+                            }
+
+                            return Container(
+                              padding: EdgeInsets.all(30.0),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  imageProfile(),
+                                  SizedBox(
+                                    height: 40.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "Nama Pengguna",
+                                      style: Get.theme.textTheme.headline2,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 5.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(
+                                          top: 10, bottom: 10),
+                                      padding: const EdgeInsets.only(
+                                          right: 15.0,
+                                          top: 15,
+                                          bottom: 15,
+                                          left: 15),
+                                      decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          border:
+                                              Border.all(color: Colors.grey)),
+                                      child: Text(
+                                        nama,
+                                        style: TextStyle(
+                                          fontSize: 18.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 5.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "Usia",
+                                      style: Get.theme.textTheme.headline2,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(
+                                          top: 10, bottom: 10),
+                                      padding: const EdgeInsets.only(
+                                          right: 230.0,
+                                          top: 15,
+                                          bottom: 15,
+                                          left: 15),
+                                      decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          border:
+                                              Border.all(color: Colors.grey)),
+                                      child: Text(
+                                        "${usia} Tahun",
+                                        style: TextStyle(
+                                          fontSize: 18.0,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "Tingkatan Perokok",
+                                      style: Get.theme.textTheme.headline2,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: (interval1 == "Perokok Ringan")
+                                        ? Container(
+                                            margin: const EdgeInsets.only(
+                                                top: 10, bottom: 10),
+                                            padding: const EdgeInsets.only(
+                                                right: 170.0,
+                                                top: 15,
+                                                bottom: 15,
+                                                left: 15),
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(7),
+                                                border: Border.all(
+                                                    color: Colors.grey)),
+                                            child: Text(
+                                              interval1,
+                                              style: TextStyle(
+                                                  fontSize: 18.0,
+                                                  color: Colors.green),
+                                            ),
+                                          )
+                                        : (interval1 == "Perokok Sedang")
+                                            ? Container(
+                                                margin: const EdgeInsets.only(
+                                                    top: 10, bottom: 10),
+                                                padding: const EdgeInsets.only(
+                                                    right: 15.0,
+                                                    top: 15,
+                                                    bottom: 15,
+                                                    left: 15),
+                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            7),
+                                                    border: Border.all(
+                                                        color: Colors.grey)),
+                                                child: Text(
+                                                  interval1,
+                                                  style: TextStyle(
+                                                      fontSize: 18.0,
+                                                      color:
+                                                          Colors.orangeAccent),
+                                                ),
+                                              )
+                                            : Container(
+                                                margin: const EdgeInsets.only(
+                                                    top: 10, bottom: 10),
+                                                padding: const EdgeInsets.only(
+                                                    right: 15.0,
+                                                    top: 15,
+                                                    bottom: 15,
+                                                    left: 15),
+                                                decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            7),
+                                                    border: Border.all(
+                                                        color: Colors.grey)),
+                                                child: Text(
+                                                  interval1,
+                                                  style: TextStyle(
+                                                      fontSize: 18.0,
+                                                      color: Colors.red),
+                                                ),
+                                              ),
+                                  ),
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      "Ketergantungan",
+                                      style: Get.theme.textTheme.headline2,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    height: 10.h,
+                                  ),
+                                  Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: (addict1 ==
+                                              "Ketergantungan rendah")
+                                          ? Container(
+                                              margin: const EdgeInsets.only(
+                                                  top: 10, bottom: 10),
+                                              padding: const EdgeInsets.only(
+                                                  right: 15.0,
+                                                  top: 15,
+                                                  bottom: 15,
+                                                  left: 15),
+                                              decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(7),
+                                                  border: Border.all(
+                                                      color: Colors.grey)),
+                                              child: Text(
+                                                addict1,
+                                                style: TextStyle(
+                                                    fontSize: 18.0,
+                                                    color: Colors.green),
+                                              ),
+                                            )
+                                          : (addict1 ==
+                                                  "Ketergantungan rendah hingga sedang")
+                                              ? Container(
+                                                  margin: const EdgeInsets.only(
+                                                      top: 10, bottom: 10),
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          right: 15.0,
+                                                          top: 15,
+                                                          bottom: 15,
+                                                          left: 15),
+                                                  decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              7),
+                                                      border: Border.all(
+                                                          color: Colors.grey)),
+                                                  child: Text(
+                                                    addict1,
+                                                    style: TextStyle(
+                                                        fontSize: 18.0,
+                                                        color: Color.fromARGB(
+                                                            255, 238, 238, 27)),
+                                                  ),
+                                                )
+                                              : (addict1 ==
+                                                      "Ketergantungan sedang")
+                                                  ? Container(
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                              top: 10,
+                                                              bottom: 10),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 15.0,
+                                                              top: 15,
+                                                              bottom: 15,
+                                                              left: 15),
+                                                      decoration: BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(7),
+                                                          border: Border.all(
+                                                              color:
+                                                                  Colors.grey)),
+                                                      child: Text(
+                                                        addict1,
+                                                        style: TextStyle(
+                                                            fontSize: 18.0,
+                                                            color: Colors
+                                                                .orangeAccent),
+                                                      ),
+                                                    )
+                                                  : Container(
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                              top: 10,
+                                                              bottom: 10),
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                              right: 15.0,
+                                                              top: 15,
+                                                              bottom: 15,
+                                                              left: 15),
+                                                      decoration: BoxDecoration(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(7),
+                                                          border: Border.all(
+                                                              color:
+                                                                  Colors.grey)),
+                                                      child: Text(
+                                                        addict1,
+                                                        style: TextStyle(
+                                                            fontSize: 18.0,
+                                                            color: Colors.red),
+                                                      ),
+                                                    )),
+                                ],
+                              ),
                             );
-                          }
-
-                          String nama = docData[FirestoreField.nama];
-                          String gender = docData[FirestoreField.gender];
-                          String usia = docData[FirestoreField.usia];
-                          int nilai1 = docData[FirestoreField.nilai1];
-                          int nilai2 = docData[FirestoreField.nilai2];
-                          int nilai3 = docData[FirestoreField.nilai3];
-                          int nilai4 = docData[FirestoreField.nilai4];
-                          int nilai5 = docData[FirestoreField.nilai5];
-                          int nilai6 = docData[FirestoreField.nilai6];
-                          var a = docData[FirestoreField.lamaMerokok];
-                          var b = docData[FirestoreField.jumlahKonsumsi];
-
-                          int level = nilai1 +
-                              nilai2 +
-                              nilai3 +
-                              nilai4 +
-                              nilai5 +
-                              nilai6;
-
-                          String addict1 = "";
-
-                          if (level < 2) {
-                            String addict = "Ketergantungan rendah";
-                            addict1 = addict;
-                          } else if (level < 4) {
-                            String addict =
-                                "Ketergantungan rendah hingga sedang";
-                            addict1 = addict;
-                          } else if (level < 7) {
-                            String addict = "Ketergantungan sedang";
-                            addict1 = addict;
-                          } else {
-                            String addict = "Ketergantungan tinggi";
-                            addict1 = addict;
-                          }
-
-                          var lamaMerokok = int.parse(a);
-                          var jumlahKonsumsi = int.parse(b);
-
-                          int durasi = lamaMerokok * jumlahKonsumsi;
-
-                          String interval1 = "";
-
-                          if (durasi < 200) {
-                            String interval = "Perokok Ringan";
-                            interval1 = interval;
-                          } else if (durasi < 600) {
-                            String interval = "Perokok Sedang";
-                            interval1 = interval;
-                          } else {
-                            String interval = "Perokok Berat";
-                            interval1 = interval;
-                          }
-
-                          return Container(
-                            padding: EdgeInsets.all(30.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                imageProfile(),
-                                SizedBox(
-                                  height: 40.h,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "Nama Pengguna",
-                                    style: Get.theme.textTheme.headline1,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 5.h,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      nama,
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 5.h,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "Usia",
-                                    style: Get.theme.textTheme.headline1,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10.h,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      "${usia} Tahun",
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 40.h,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "Tingkatan Perokok",
-                                    style: Get.theme.textTheme.headline2,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10.h,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      interval1,
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10.h,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Text(
-                                    "Ketergantungan",
-                                    style: Get.theme.textTheme.headline2,
-                                  ),
-                                ),
-                                SizedBox(
-                                  height: 10.h,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: Text(
-                                      addict1,
-                                      style: TextStyle(
-                                        fontSize: 18.0,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                        separatorBuilder: (__, ___) {
-                          return const Divider();
-                        },
-                        itemCount: snapshots.data!.docs.length);
+                          },
+                          separatorBuilder: (__, ___) {
+                            return const Divider();
+                          },
+                          itemCount: snapshots.data!.docs.length);
+                    } else {
+                      return Column(
+                        children: [
+                          SizedBox(height: 100.h),
+                          Text(
+                            "Document aren't available",
+                            style: Get.theme.textTheme.headline2,
+                          ),
+                          SizedBox(height: 20.h),
+                          Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: ElevatedButton(
+                                onPressed: () {
+                                  Get.offAll(() => FormRokok());
+                                },
+                                child: Text('Lengkapi Data'),
+                                style: ElevatedButton.styleFrom(
+                                  primary: Colors.orange,
+                                  onPrimary: Colors.white,
+                                )),
+                          ),
+                        ],
+                      );
+                    }
                   } else {
-                    return Column(
-                      children: [
-                        SizedBox(height: 100.h),
-                        Text(
-                          "Document aren't available",
-                          style: Get.theme.textTheme.headline2,
-                        ),
-                        SizedBox(height: 20.h),
-                        Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: ElevatedButton(
-                              onPressed: () {
-                                Get.offAll(() => FormRokok());
-                              },
-                              child: Text('Lengkapi Data'),
-                              style: ElevatedButton.styleFrom(
-                                primary: Colors.orange,
-                                onPrimary: Colors.white,
-                              )),
-                        ),
-                      ],
+                    return const Center(
+                      child: Text('Getting Error'),
                     );
                   }
-                } else {
-                  return const Center(
-                    child: Text('Getting Error'),
-                  );
-                }
-              }),
+                }),
+          ),
         ));
   }
 }

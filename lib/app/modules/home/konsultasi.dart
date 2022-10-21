@@ -1,12 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../../core/utils/keys.dart';
@@ -25,10 +21,9 @@ class _KonsultasiState extends State<Konsultasi> {
   CalendarFormat format = CalendarFormat.month;
   DateTime selectedDay = DateTime.now();
   DateTime focusedDay = DateTime.now();
+  final _formKey = GlobalKey<FormState>();
   final user = FirebaseAuth.instance.currentUser!;
-  TextEditingController _viaController = TextEditingController();
-  TextEditingController _contactController = TextEditingController();
-  final _formkey = GlobalKey<FormBuilderState>();
+  final TextEditingController _contactController = TextEditingController();
 
   List<String> via = ['Whatsapp'];
   String? selectedVia = 'Whatsapp';
@@ -46,10 +41,10 @@ class _KonsultasiState extends State<Konsultasi> {
               firstDay: DateTime(1902),
               lastDay: DateTime(2099),
               calendarFormat: format,
-              calendarBuilders: CalendarBuilders(),
-              onFormatChanged: (CalendarFormat _format) {
+              calendarBuilders: const CalendarBuilders(),
+              onFormatChanged: (CalendarFormat format) {
                 setState(() {
-                  format = _format;
+                  format = format;
                 });
               },
               startingDayOfWeek: StartingDayOfWeek.sunday,
@@ -76,7 +71,7 @@ class _KonsultasiState extends State<Konsultasi> {
                   shape: BoxShape.rectangle,
                   borderRadius: BorderRadius.circular(5.0),
                 ),
-                selectedTextStyle: TextStyle(color: Colors.white),
+                selectedTextStyle: const TextStyle(color: Colors.white),
                 todayDecoration: BoxDecoration(
                   color: Colors.blue,
                   shape: BoxShape.rectangle,
@@ -99,7 +94,7 @@ class _KonsultasiState extends State<Konsultasi> {
                   color: Colors.blue,
                   borderRadius: BorderRadius.circular(5.0),
                 ),
-                formatButtonTextStyle: TextStyle(
+                formatButtonTextStyle: const TextStyle(
                   color: Colors.white,
                 ),
               ),
@@ -118,10 +113,10 @@ class _KonsultasiState extends State<Konsultasi> {
           Align(
             alignment: Alignment.centerLeft,
             child: Container(
-              margin: EdgeInsets.only(left: 30),
+              margin: const EdgeInsets.only(left: 30),
               child: Text(
                   "Tanggal ${selectedDay.day}, Bulan ${selectedDay.month}, Tahun ${selectedDay.year}",
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 15.0,
                   )),
             ),
@@ -165,11 +160,22 @@ class _KonsultasiState extends State<Konsultasi> {
           ),
           Padding(
             padding: const EdgeInsets.only(left: 10.0, right: 10.0),
-            child: TextInputField(
-              iD: 1,
-              textEditingController: _contactController,
-              hintText: '08...',
-              obscureText: false,
+            child: Form(
+              key: _formKey,
+              child: TextFormField(
+                controller: _contactController,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter some text';
+                  }
+                  return null;
+                },
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(),
+                  hintText: '08..',
+                ),
+                keyboardType: TextInputType.number,
+              ),
             ),
           ),
           SizedBox(
@@ -178,35 +184,12 @@ class _KonsultasiState extends State<Konsultasi> {
           Padding(
             padding: const EdgeInsets.all(20.0),
             child: AuthButton("Submit", () {
-              submitKonsultasi();
-              try {
-                showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                          title: const Text(
-                            "Data Berhasl Dikirim",
-                          ),
-                          content: Text(
-                            'Harap tunggu konfirmasi terkait jadwal konsultasi yang anda ajukan',
-                            style: Get.theme.textTheme.headline2,
-                          ),
-                          actions: [
-                            TextButton(
-                              child: Text("Ok"),
-                              onPressed: () {
-                                Navigator.pop(context);
-                                setState(() {
-                                  defaultDecoration:
-                                  BoxDecoration(
-                                      shape: BoxShape.rectangle,
-                                      borderRadius: BorderRadius.circular(5.0),
-                                      color: Colors.orange);
-                                });
-                              },
-                            ),
-                          ],
-                        ));
-              } catch (error) {}
+              if (_formKey.currentState!.validate()) {
+                submitKonsultasi();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Data dikirim')),
+                );
+              }
             }),
           ),
         ]),

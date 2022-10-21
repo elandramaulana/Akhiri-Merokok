@@ -26,29 +26,25 @@ class MySharedPref {
       _storage.write(_lightThemeKey, lightTheme);
 
   /// get if the current theme type is light
-  static bool getThemeIsLight() =>
-      _storage.read(_lightThemeKey) ?? true;
+  static bool getThemeIsLight() => _storage.read(_lightThemeKey) ?? true;
 
   /// save current locale
   static void setCurrentLanguage(String languageCode) =>
       _storage.write(_currentLocalKey, languageCode);
 
   /// get current locale
-  static Locale getCurrentLocal(){
+  static Locale getCurrentLocal() {
     String? langCode = _storage.read(_currentLocalKey);
     // default language is english
-    if(langCode == null){
+    if (langCode == null) {
       return LocalizationService.defaultLanguage;
     }
     return LocalizationService.supportedLanguages[langCode]!;
   }
 
   /// save generated fcm token
-  static void setFcmToken(String token) =>
-      _storage.write(_fcmTokenKey, token);
+  static void setFcmToken(String token) => _storage.write(_fcmTokenKey, token);
 
   /// get generated fcm token
-  static String? getFcmToken() =>
-      _storage.read(_fcmTokenKey);
-
+  static String? getFcmToken() => _storage.read(_fcmTokenKey);
 }

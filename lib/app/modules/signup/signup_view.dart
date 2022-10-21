@@ -1,5 +1,8 @@
+import 'package:akhiri_merokok/app/data/providers/google_auth.dart';
+import 'package:akhiri_merokok/app/modules/home/home_view.dart';
 import 'package:akhiri_merokok/app/modules/home/navbar.dart';
 import 'package:akhiri_merokok/app/modules/question/question1.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -15,6 +18,7 @@ class SignupView extends StatelessWidget {
   final AuthController authController = AuthController.to;
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  bool _isSigningIn = false;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +162,7 @@ class SignupView extends StatelessWidget {
                             primary: Colors.transparent),
                         onPressed: () {},
                         child: Image.asset(
-                          'assets/images/profile.png',
+                          'assets/images/facebook.png',
                           height: 24.h,
                           width: 24.h,
                         ),
@@ -193,3 +197,85 @@ class SignupView extends StatelessWidget {
     );
   }
 }
+
+// class GoogleSignInButton extends StatefulWidget {
+//   @override
+//   _GoogleSignInButtonState createState() => _GoogleSignInButtonState();
+// }
+
+// class _GoogleSignInButtonState extends State<GoogleSignInButton> {
+//   bool _isSigningIn = false;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.only(bottom: 16.0),
+//       child: _isSigningIn
+//           ? CircularProgressIndicator(
+//               valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+//             )
+//           : OutlinedButton(
+//               style: ButtonStyle(
+//                 backgroundColor: MaterialStateProperty.all(Colors.white),
+//                 shape: MaterialStateProperty.all(
+//                   RoundedRectangleBorder(
+//                     borderRadius: BorderRadius.circular(40),
+//                   ),
+//                 ),
+//               ),
+//               onPressed: () async {
+//                 setState(() async {
+//                   setState(() {
+//                     _isSigningIn = true;
+//                   });
+
+//                   User? user =
+//                       await Authentication.signInWithGoogle(context: context);
+
+//                   setState(() {
+//                     _isSigningIn = false;
+//                   });
+
+//                   if (user != null) {
+//                     Navigator.of(context).pushReplacement(
+//                       MaterialPageRoute(
+//                         builder: (context) => HomeView(),
+//                       ),
+//                     );
+//                   }
+//                 });
+
+//                 // TODO: Add method call to the Google Sign-In authentication
+
+//                 setState(() {
+//                   _isSigningIn = false;
+//                 });
+//               },
+//               child: Padding(
+//                 padding: const EdgeInsets.fromLTRB(0, 10, 0, 10),
+//                 child: Row(
+//                   mainAxisSize: MainAxisSize.min,
+//                   mainAxisAlignment: MainAxisAlignment.center,
+//                   children: <Widget>[
+//                     Image(
+//                       image: AssetImage("assets/google_logo.png"),
+//                       height: 35.0,
+//                     ),
+//                     Padding(
+//                       padding: const EdgeInsets.only(left: 10),
+//                       child: Text(
+//                         'Sign in with Google',
+//                         style: TextStyle(
+//                           fontSize: 20,
+//                           color: Colors.black54,
+//                           fontWeight: FontWeight.w600,
+//                         ),
+//                       ),
+//                     )
+//                   ],
+//                 ),
+//               ),
+//             ),
+//     );
+//   }
+// }

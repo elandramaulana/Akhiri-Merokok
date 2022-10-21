@@ -1,3 +1,4 @@
+import 'package:akhiri_merokok/app/modules/home/about.dart';
 import 'package:akhiri_merokok/app/modules/home/home_view.dart';
 import 'package:akhiri_merokok/app/modules/home/konsultasi.dart';
 import 'package:akhiri_merokok/app/modules/home/statistic.dart';
@@ -31,7 +32,8 @@ class _Navbar extends State<Navbar> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text("Akhiri Merokok"),
+          title:
+              Image.asset('assets/images/title.png', width: 160, height: 160),
           centerTitle: true,
           actions: <Widget>[
             IconButton(
@@ -60,17 +62,17 @@ class _Navbar extends State<Navbar> {
                     Navigator.pop(context);
                   },
                   leading: const Icon(
-                    Icons.settings,
+                    Icons.admin_panel_settings_sharp,
                     color: Colors.white,
                   ),
                   title: const Text(
-                    "Pengaturan",
+                    "Bantuan",
                     style: TextStyle(color: Colors.white, fontSize: 15),
                   ),
                 ),
                 ListTile(
                   onTap: () {
-                    Navigator.pop(context);
+                    Get.to(const About());
                   },
                   leading: const Icon(
                     Icons.question_mark_rounded,
@@ -91,7 +93,7 @@ class _Navbar extends State<Navbar> {
                   ),
                   title: const Text(
                     "Keluar",
-                    style: const TextStyle(color: Colors.white, fontSize: 15),
+                    style: TextStyle(color: Colors.white, fontSize: 15),
                   ),
                 )
               ],

@@ -1,5 +1,3 @@
-import 'package:akhiri_merokok/app/modules/home/navbar.dart';
-import 'package:akhiri_merokok/app/modules/question/form.dart';
 import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +18,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   SharedPreferences preference = await SharedPreferences.getInstance();
-  initScreen = await preference.getInt('initScreen');
+  initScreen = preference.getInt('initScreen');
   await preference.setInt('initScreen', 1);
 
   AwesomeNotifications().initialize(

@@ -1,9 +1,18 @@
+import 'dart:developer';
+import 'dart:async';
+import 'dart:ffi';
+
+import 'package:collection/collection.dart';
 import 'package:akhiri_merokok/app/data/models/chart.dart';
+import 'package:akhiri_merokok/app/data/models/users.dart';
+import 'package:akhiri_merokok/core/utils/keys.dart';
+import 'package:akhiri_merokok/firestore/field_firestore.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../../firestore/bucket_firestore.dart';
 import '../../data/providers/char_controller.dart';
@@ -22,7 +31,6 @@ final FirebaseFirestore chartDb = FirebaseFirestore.instance;
 Future<List<RokokChart>> getRokokStats() {
   FirebaseAuth auth = FirebaseAuth.instance;
   final user = FirebaseAuth.instance.currentUser!;
-  String uid = auth.currentUser!.uid.toString();
   return chartDb
       .collection(FirestoreBucket.users)
       .doc(user.uid)
@@ -36,6 +44,16 @@ Future<List<RokokChart>> getRokokStats() {
           .entries
           .map((entry) => RokokChart.fromSnapshot(entry.value, entry.key))
           .toList());
+}
+
+Stream<UserModel> readUser() {
+  FirebaseAuth auth = FirebaseAuth.instance;
+  final user = FirebaseAuth.instance.currentUser!;
+  return firebaseFirestore
+      .collection(FirestoreBucket.users)
+      .doc(user.uid)
+      .snapshots()
+      .map((event) => UserModel.fromMap(event.data()!));
 }
 
 DateTime selectedDay = DateTime.now();
@@ -52,7 +70,9 @@ class _StatisticState extends State<Statistic> {
   num total_rokok = 0;
   num rokok_terbanyak = 0;
   num rokok_terdikit = 0;
+  String datetime = "0";
   String strRata = "0";
+
   FirebaseAuth auth = FirebaseAuth.instance;
   final user = FirebaseAuth.instance.currentUser!;
 
@@ -72,17 +92,289 @@ class _StatisticState extends State<Statistic> {
 
   void updateData(
     updateTotalRokok,
-    updateRataPerhari,
+    updateRatarata,
     updateTerbanyak,
     updateTerdikit,
   ) {
     setState(() {
-      rata_perhari = updateRataPerhari;
+      rata_perhari = updateRatarata;
       total_rokok = updateTotalRokok;
       rokok_terbanyak = updateTerbanyak;
       rokok_terdikit = updateTerdikit;
-      strRata = updateRataPerhari.toString() + ".0";
+      strRata = updateRatarata.toString() + ".0";
       strRata = strRata.substring(0, 3);
+    });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // apalah
+    int hitungan = 7;
+    List<num> list_rokok = [];
+    num updateTotalRokok = 0;
+    num updateRatarata = 0;
+    num updateTerbanyak = 0;
+    num updateTerdikit = 0;
+
+    FirebaseFirestore chartDb = FirebaseFirestore.instance;
+    chartDb.collection(FirestoreBucket.users).doc(user.uid).get().then((value) {
+      datetime = value.data()?['timestamp'];
+      datetime = datetime.toString();
+      var registration_date = datetime.split(" ")[0].split("-");
+      int awal;
+
+      if (int.parse(registration_date[0]) == focusedDay.year) {
+        if (int.parse(registration_date[1]) == focusedDay.month) {
+          // Ketika belum 1 bulan
+          chartController.stats.value = chartDb
+              .collection(FirestoreBucket.users)
+              .doc(user.uid)
+              .collection(FirestoreBucket.jadwal)
+              .doc(registration_date[0])
+              .collection(
+                  conveterbulan(int.parse(registration_date[1]).toString())!)
+              .get()
+              .then((value) {
+            if (value.docs.length <= hitungan) {
+              awal = 0;
+            } else {
+              awal = value.docs.length - hitungan;
+            }
+            var data = value.docs.getRange(awal, value.docs.length);
+            data.toList().forEach((element) {
+              list_rokok.add(element.data()['jumlah']);
+            });
+            updateTotalRokok = list_rokok.sum;
+            updateTerdikit = list_rokok.min;
+            updateTerbanyak = list_rokok.max;
+            updateRatarata = list_rokok.average;
+            updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                updateTerdikit);
+            return value.docs
+                .asMap()
+                .entries
+                .map((entry) => RokokChart.fromSnapshot(entry.value, entry.key))
+                .toList()
+                .getRange(awal, value.docs.length)
+                .toList();
+          });
+        } else {
+          // Ketika sudah 2 bulan
+          chartController.stats.value = chartDb
+              .collection(FirestoreBucket.users)
+              .doc(user.uid)
+              .collection(FirestoreBucket.jadwal)
+              .doc(registration_date[0])
+              .collection(conveterbulan(focusedDay.month.toString())!)
+              .get()
+              .then((value) {
+            if (value.docs.length <= hitungan) {
+              awal = 0;
+            } else {
+              awal = value.docs.length - hitungan;
+            }
+            var data = value.docs.getRange(awal, value.docs.length);
+            var forChart = value.docs
+                .asMap()
+                .entries
+                .map((entry) => RokokChart.fromSnapshot(entry.value, entry.key))
+                .toList()
+                .getRange(awal, value.docs.length)
+                .toList();
+            data.toList().forEach((element) {
+              list_rokok.add(element.data()['jumlah']);
+            });
+            if (list_rokok.length < hitungan) {
+              chartDb
+                  .collection(FirestoreBucket.users)
+                  .doc(user.uid)
+                  .collection(FirestoreBucket.jadwal)
+                  .doc(registration_date[0])
+                  .collection(conveterbulan((focusedDay.month - 1).toString())!)
+                  .get()
+                  .then((value) {
+                if (value.docs.length <= (hitungan - list_rokok.length)) {
+                  awal = 0;
+                } else {
+                  awal = value.docs.length - (hitungan - list_rokok.length);
+                }
+                var data = value.docs.getRange(awal, value.docs.length);
+                forChart += value.docs
+                    .asMap()
+                    .entries
+                    .map((entry) =>
+                        RokokChart.fromSnapshot(entry.value, entry.key))
+                    .toList()
+                    .getRange(awal, value.docs.length)
+                    .toList();
+                data.toList().forEach((element) {
+                  list_rokok.add(element.data()['jumlah']);
+                });
+                data.toList().forEach((element) {
+                  list_rokok.add(element.data()['jumlah']);
+                });
+                updateTotalRokok = list_rokok.sum;
+                updateTerdikit = list_rokok.min;
+                updateTerbanyak = list_rokok.max;
+                updateRatarata = list_rokok.average;
+                updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                    updateTerdikit);
+                return forChart;
+              });
+            } else {
+              updateTotalRokok = list_rokok.sum;
+              updateTerdikit = list_rokok.min;
+              updateTerbanyak = list_rokok.max;
+              updateRatarata = list_rokok.average;
+              updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                  updateTerdikit);
+              return forChart;
+            }
+            return forChart;
+          });
+        }
+      } else {
+        // Ketika beda tahun
+        if (focusedDay.month == 1) {
+          // Ketika masih dibulan january
+          chartController.stats.value = chartDb
+              .collection(FirestoreBucket.users)
+              .doc(user.uid)
+              .collection(FirestoreBucket.jadwal)
+              .doc(focusedDay.year.toString())
+              .collection(conveterbulan(focusedDay.month.toString())!)
+              .get()
+              .then((value) {
+            if (value.docs.length <= hitungan) {
+              awal = 0;
+            } else {
+              awal = value.docs.length - hitungan;
+            }
+            var data = value.docs.getRange(awal, value.docs.length);
+            var forChart = value.docs
+                .asMap()
+                .entries
+                .map((entry) => RokokChart.fromSnapshot(entry.value, entry.key))
+                .toList()
+                .getRange(awal, value.docs.length)
+                .toList();
+            data.toList().forEach((element) {
+              list_rokok.add(element.data()['jumlah']);
+            });
+            if (list_rokok.length < hitungan) {
+              chartDb
+                  .collection(FirestoreBucket.users)
+                  .doc(user.uid)
+                  .collection(FirestoreBucket.jadwal)
+                  .doc((focusedDay.year - 1).toString())
+                  .collection(conveterbulan("12")!)
+                  .get()
+                  .then((value) {
+                if (value.docs.length <= (hitungan - list_rokok.length)) {
+                  awal = 0;
+                } else {
+                  awal = value.docs.length - (hitungan - list_rokok.length);
+                }
+                var data = value.docs.getRange(awal, value.docs.length);
+                forChart += value.docs
+                    .asMap()
+                    .entries
+                    .map((entry) =>
+                        RokokChart.fromSnapshot(entry.value, entry.key))
+                    .toList()
+                    .getRange(awal, value.docs.length)
+                    .toList();
+                data.toList().forEach((element) {
+                  list_rokok.add(element.data()['jumlah']);
+                });
+                updateTotalRokok = list_rokok.sum;
+                updateTerdikit = list_rokok.min;
+                updateTerbanyak = list_rokok.max;
+                updateRatarata = list_rokok.average;
+                updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                    updateTerdikit);
+                return forChart;
+              });
+            }
+            updateTotalRokok = list_rokok.sum;
+            updateTerdikit = list_rokok.min;
+            updateTerbanyak = list_rokok.max;
+            updateRatarata = list_rokok.average;
+            updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                updateTerdikit);
+            return forChart;
+          });
+        } else {
+          chartController.stats.value = chartDb
+              .collection(FirestoreBucket.users)
+              .doc(user.uid)
+              .collection(FirestoreBucket.jadwal)
+              .doc(focusedDay.year.toString())
+              .collection(conveterbulan(focusedDay.month.toString())!)
+              .get()
+              .then((value) {
+            if (value.docs.length <= hitungan) {
+              awal = 0;
+            } else {
+              awal = value.docs.length - hitungan;
+            }
+            var data = value.docs.getRange(awal, value.docs.length);
+            var forChart = value.docs
+                .asMap()
+                .entries
+                .map((entry) => RokokChart.fromSnapshot(entry.value, entry.key))
+                .toList()
+                .getRange(awal, value.docs.length)
+                .toList();
+            data.toList().forEach((element) {
+              list_rokok.add(element.data()['jumlah']);
+            });
+            if (list_rokok.length < hitungan) {
+              chartDb
+                  .collection(FirestoreBucket.users)
+                  .doc(user.uid)
+                  .collection(FirestoreBucket.jadwal)
+                  .doc(focusedDay.year.toString())
+                  .collection(conveterbulan((focusedDay.month - 1).toString())!)
+                  .get()
+                  .then((value) {
+                if (value.docs.length <= (hitungan - list_rokok.length)) {
+                  awal = 0;
+                } else {
+                  awal = value.docs.length - (hitungan - list_rokok.length);
+                }
+                var data = value.docs.getRange(awal, value.docs.length);
+                forChart += value.docs
+                    .asMap()
+                    .entries
+                    .map((entry) =>
+                        RokokChart.fromSnapshot(entry.value, entry.key))
+                    .toList()
+                    .getRange(awal, value.docs.length)
+                    .toList();
+                data.toList().forEach((element) {
+                  list_rokok.add(element.data()['jumlah']);
+                });
+                updateTotalRokok = list_rokok.sum;
+                updateTerdikit = list_rokok.min;
+                updateTerbanyak = list_rokok.max;
+                updateRatarata = list_rokok.average;
+                updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                    updateTerdikit);
+                return forChart;
+              });
+            }
+            updateTotalRokok = list_rokok.sum;
+            updateTerdikit = list_rokok.min;
+            updateTerbanyak = list_rokok.max;
+            updateRatarata = list_rokok.average;
+            updateData(updateTotalRokok, updateRatarata, updateTerbanyak,
+                updateTerdikit);
+            return forChart;
+          });
+        }
+      }
     });
   }
 
@@ -119,76 +411,332 @@ class _StatisticState extends State<Statistic> {
                                 child: Text(page),
                               ))
                           .toList(),
-                      onChanged: (page) {
+                      // trigger statistik per waktu
+                      onChanged: (page) async {
                         _focusedDay = focusedDay;
                         String updateTanggal = focusedDay.day.toString();
                         String updateBulan = focusedDay.month.toString();
                         String updateTahun = focusedDay.year.toString();
-                        var conveterbulan2 =
-                            conveterbulan(focusedDay.month.toString());
+
                         updateChart(updateTanggal, updateBulan, updateTahun);
 
-                        FirebaseFirestore chartDb = FirebaseFirestore.instance;
-                        String uid = auth.currentUser!.uid.toString();
-
-                        var data = FirebaseFirestore.instance
-                            .collection(FirestoreBucket.users)
-                            .doc(user.uid)
-                            .collection(FirestoreBucket.jadwal)
-                            .doc(focusedDay.year.toString())
-                            .collection(conveterbulan2!);
-                        data.snapshots().listen(
-                          (event) {
-                            num updateTotalRokok = 0;
-                            num updateRataPerhari = 0;
-                            num updateTerbanyak = 0;
-                            num updateTerdikit = 0;
-                            num m1 = 0;
-                            num m2 = 0;
-                            num m3 = 0;
-                            num m4 = 0;
-                            for (var doc in event.docs) {
-                              updateTotalRokok =
-                                  updateTotalRokok + doc.data()['jumlah'];
-                              if (int.parse(doc.data()['tanggal']) < 8) {
-                                m1 = m1 + doc.data()['jumlah'];
-                              } else if (int.parse(doc.data()['tanggal']) <
-                                  15) {
-                                m2 = m2 + doc.data()['jumlah'];
-                              } else if (int.parse(doc.data()['tanggal']) <
-                                  22) {
-                                m3 = m3 + doc.data()['jumlah'];
-                              } else if (int.parse(doc.data()['tanggal']) <
-                                  29) {
-                                m4 = m4 + doc.data()['jumlah'];
-                              }
+                        // apalah
+                        int hitungan = 7;
+                        switch (page) {
+                          case "Per Minggu":
+                            {
+                              hitungan = 7;
                             }
-                            var minggu = [m1, m2, m3, m4];
-                            minggu.sort();
-                            updateTerdikit = minggu[0];
-                            updateTerbanyak = minggu[3];
-                            updateRataPerhari = updateTotalRokok / 28;
-                            updateData(updateTotalRokok, updateRataPerhari,
-                                updateTerbanyak, updateTerdikit);
-                          },
-                        );
+                            break;
 
-                        chartController.stats.value = chartDb
+                          case "Per 2 Minggu":
+                            {
+                              hitungan = 14;
+                            }
+                            break;
+
+                          default:
+                            {
+                              hitungan = 30;
+                            }
+                            break;
+                        }
+
+                        List<num> list_rokok = [];
+                        num updateTotalRokok = 0;
+                        num updateRatarata = 0;
+                        num updateTerbanyak = 0;
+                        num updateTerdikit = 0;
+
+                        FirebaseFirestore chartDb = FirebaseFirestore.instance;
+                        chartDb
                             .collection(FirestoreBucket.users)
                             .doc(user.uid)
-                            .collection(FirestoreBucket.jadwal)
-                            .doc(tahun)
-                            .collection(conveterbulan(bulan!)!)
-                            .orderBy('tanggal')
                             .get()
-                            .then((querySnapshot) => querySnapshot.docs
-                                .asMap()
-                                .entries
-                                .map((entry) => RokokChart.fromSnapshot(
-                                    entry.value, entry.key))
-                                .toList());
-                        // var ss = getRokokStats();
-                        // chartController = ChartController(ss);
+                            .then((value) {
+                          datetime = value.data()?['timestamp'];
+                          datetime = datetime.toString();
+                          var registration_date =
+                              datetime.split(" ")[0].split("-");
+                          int awal;
+                          if (int.parse(registration_date[0]) ==
+                              focusedDay.year) {
+                            if (int.parse(registration_date[1]) ==
+                                focusedDay.month) {
+                              // Ketika belum 1 bulan
+                              chartController.stats.value = chartDb
+                                  .collection(FirestoreBucket.users)
+                                  .doc(user.uid)
+                                  .collection(FirestoreBucket.jadwal)
+                                  .doc(registration_date[0])
+                                  .collection(conveterbulan(
+                                      int.parse(registration_date[1])
+                                          .toString())!)
+                                  .get()
+                                  .then((value) {
+                                if (value.docs.length <= hitungan) {
+                                  awal = 0;
+                                } else {
+                                  awal = value.docs.length - hitungan;
+                                }
+                                var data = value.docs
+                                    .getRange(awal, value.docs.length);
+                                data.toList().forEach((element) {
+                                  list_rokok.add(element.data()['jumlah']);
+                                });
+                                updateTotalRokok = list_rokok.sum;
+                                updateTerdikit = list_rokok.min;
+                                updateTerbanyak = list_rokok.max;
+                                updateRatarata = list_rokok.average;
+                                updateData(updateTotalRokok, updateRatarata,
+                                    updateTerbanyak, updateTerdikit);
+                                return value.docs
+                                    .asMap()
+                                    .entries
+                                    .map((entry) => RokokChart.fromSnapshot(
+                                        entry.value, entry.key))
+                                    .toList()
+                                    .getRange(awal, value.docs.length)
+                                    .toList();
+                              });
+                            } else {
+                              // Ketika sudah 2 bulan
+                              chartController.stats.value = chartDb
+                                  .collection(FirestoreBucket.users)
+                                  .doc(user.uid)
+                                  .collection(FirestoreBucket.jadwal)
+                                  .doc(registration_date[0])
+                                  .collection(conveterbulan(
+                                      focusedDay.month.toString())!)
+                                  .get()
+                                  .then((value) {
+                                if (value.docs.length <= hitungan) {
+                                  awal = 0;
+                                } else {
+                                  awal = value.docs.length - hitungan;
+                                }
+                                var data = value.docs
+                                    .getRange(awal, value.docs.length);
+                                var forChart = value.docs
+                                    .asMap()
+                                    .entries
+                                    .map((entry) => RokokChart.fromSnapshot(
+                                        entry.value, entry.key))
+                                    .toList()
+                                    .getRange(awal, value.docs.length)
+                                    .toList();
+                                data.toList().forEach((element) {
+                                  list_rokok.add(element.data()['jumlah']);
+                                });
+                                if (list_rokok.length < hitungan) {
+                                  chartDb
+                                      .collection(FirestoreBucket.users)
+                                      .doc(user.uid)
+                                      .collection(FirestoreBucket.jadwal)
+                                      .doc(registration_date[0])
+                                      .collection(conveterbulan(
+                                          (focusedDay.month - 1).toString())!)
+                                      .get()
+                                      .then((value) {
+                                    if (value.docs.length <=
+                                        (hitungan - list_rokok.length)) {
+                                      awal = 0;
+                                    } else {
+                                      awal = value.docs.length -
+                                          (hitungan - list_rokok.length);
+                                    }
+                                    var data = value.docs
+                                        .getRange(awal, value.docs.length);
+                                    forChart += value.docs
+                                        .asMap()
+                                        .entries
+                                        .map((entry) => RokokChart.fromSnapshot(
+                                            entry.value, entry.key))
+                                        .toList()
+                                        .getRange(awal, value.docs.length)
+                                        .toList();
+                                    data.toList().forEach((element) {
+                                      list_rokok.add(element.data()['jumlah']);
+                                    });
+                                    data.toList().forEach((element) {
+                                      list_rokok.add(element.data()['jumlah']);
+                                    });
+                                    updateTotalRokok = list_rokok.sum;
+                                    updateTerdikit = list_rokok.min;
+                                    updateTerbanyak = list_rokok.max;
+                                    updateRatarata = list_rokok.average;
+                                    updateData(updateTotalRokok, updateRatarata,
+                                        updateTerbanyak, updateTerdikit);
+                                    return forChart;
+                                  });
+                                } else {
+                                  updateTotalRokok = list_rokok.sum;
+                                  updateTerdikit = list_rokok.min;
+                                  updateTerbanyak = list_rokok.max;
+                                  updateRatarata = list_rokok.average;
+                                  updateData(updateTotalRokok, updateRatarata,
+                                      updateTerbanyak, updateTerdikit);
+                                  return forChart;
+                                }
+                                return forChart;
+                              });
+                            }
+                          } else {
+                            // Ketika beda tahun
+                            if (focusedDay.month == 1) {
+                              // Ketika masih dibulan january
+                              chartController.stats.value = chartDb
+                                  .collection(FirestoreBucket.users)
+                                  .doc(user.uid)
+                                  .collection(FirestoreBucket.jadwal)
+                                  .doc(focusedDay.year.toString())
+                                  .collection(conveterbulan(
+                                      focusedDay.month.toString())!)
+                                  .get()
+                                  .then((value) {
+                                if (value.docs.length <= hitungan) {
+                                  awal = 0;
+                                } else {
+                                  awal = value.docs.length - hitungan;
+                                }
+                                var data = value.docs
+                                    .getRange(awal, value.docs.length);
+                                var forChart = value.docs
+                                    .asMap()
+                                    .entries
+                                    .map((entry) => RokokChart.fromSnapshot(
+                                        entry.value, entry.key))
+                                    .toList()
+                                    .getRange(awal, value.docs.length)
+                                    .toList();
+                                data.toList().forEach((element) {
+                                  list_rokok.add(element.data()['jumlah']);
+                                });
+                                if (list_rokok.length < hitungan) {
+                                  chartDb
+                                      .collection(FirestoreBucket.users)
+                                      .doc(user.uid)
+                                      .collection(FirestoreBucket.jadwal)
+                                      .doc((focusedDay.year - 1).toString())
+                                      .collection(conveterbulan("12")!)
+                                      .get()
+                                      .then((value) {
+                                    if (value.docs.length <=
+                                        (hitungan - list_rokok.length)) {
+                                      awal = 0;
+                                    } else {
+                                      awal = value.docs.length -
+                                          (hitungan - list_rokok.length);
+                                    }
+                                    var data = value.docs
+                                        .getRange(awal, value.docs.length);
+                                    forChart += value.docs
+                                        .asMap()
+                                        .entries
+                                        .map((entry) => RokokChart.fromSnapshot(
+                                            entry.value, entry.key))
+                                        .toList()
+                                        .getRange(awal, value.docs.length)
+                                        .toList();
+                                    data.toList().forEach((element) {
+                                      list_rokok.add(element.data()['jumlah']);
+                                    });
+                                    updateTotalRokok = list_rokok.sum;
+                                    updateTerdikit = list_rokok.min;
+                                    updateTerbanyak = list_rokok.max;
+                                    updateRatarata = list_rokok.average;
+                                    updateData(updateTotalRokok, updateRatarata,
+                                        updateTerbanyak, updateTerdikit);
+                                    return forChart;
+                                  });
+                                }
+                                updateTotalRokok = list_rokok.sum;
+                                updateTerdikit = list_rokok.min;
+                                updateTerbanyak = list_rokok.max;
+                                updateRatarata = list_rokok.average;
+                                updateData(updateTotalRokok, updateRatarata,
+                                    updateTerbanyak, updateTerdikit);
+                                return forChart;
+                              });
+                            } else {
+                              chartController.stats.value = chartDb
+                                  .collection(FirestoreBucket.users)
+                                  .doc(user.uid)
+                                  .collection(FirestoreBucket.jadwal)
+                                  .doc(focusedDay.year.toString())
+                                  .collection(conveterbulan(
+                                      focusedDay.month.toString())!)
+                                  .get()
+                                  .then((value) {
+                                if (value.docs.length <= hitungan) {
+                                  awal = 0;
+                                } else {
+                                  awal = value.docs.length - hitungan;
+                                }
+                                var data = value.docs
+                                    .getRange(awal, value.docs.length);
+                                var forChart = value.docs
+                                    .asMap()
+                                    .entries
+                                    .map((entry) => RokokChart.fromSnapshot(
+                                        entry.value, entry.key))
+                                    .toList()
+                                    .getRange(awal, value.docs.length)
+                                    .toList();
+                                data.toList().forEach((element) {
+                                  list_rokok.add(element.data()['jumlah']);
+                                });
+                                if (list_rokok.length < hitungan) {
+                                  chartDb
+                                      .collection(FirestoreBucket.users)
+                                      .doc(user.uid)
+                                      .collection(FirestoreBucket.jadwal)
+                                      .doc(focusedDay.year.toString())
+                                      .collection(conveterbulan(
+                                          (focusedDay.month - 1).toString())!)
+                                      .get()
+                                      .then((value) {
+                                    if (value.docs.length <=
+                                        (hitungan - list_rokok.length)) {
+                                      awal = 0;
+                                    } else {
+                                      awal = value.docs.length -
+                                          (hitungan - list_rokok.length);
+                                    }
+                                    var data = value.docs
+                                        .getRange(awal, value.docs.length);
+                                    forChart += value.docs
+                                        .asMap()
+                                        .entries
+                                        .map((entry) => RokokChart.fromSnapshot(
+                                            entry.value, entry.key))
+                                        .toList()
+                                        .getRange(awal, value.docs.length)
+                                        .toList();
+                                    data.toList().forEach((element) {
+                                      list_rokok.add(element.data()['jumlah']);
+                                    });
+                                    updateTotalRokok = list_rokok.sum;
+                                    updateTerdikit = list_rokok.min;
+                                    updateTerbanyak = list_rokok.max;
+                                    updateRatarata = list_rokok.average;
+                                    updateData(updateTotalRokok, updateRatarata,
+                                        updateTerbanyak, updateTerdikit);
+                                    return forChart;
+                                  });
+                                }
+                                updateTotalRokok = list_rokok.sum;
+                                updateTerdikit = list_rokok.min;
+                                updateTerbanyak = list_rokok.max;
+                                updateRatarata = list_rokok.average;
+                                updateData(updateTotalRokok, updateRatarata,
+                                    updateTerbanyak, updateTerdikit);
+                                return forChart;
+                              });
+                            }
+                          }
+                        });
+
                         setState(() => selectedPage = page);
                       }),
                 ),
@@ -211,7 +759,7 @@ class _StatisticState extends State<Statistic> {
                                 child: Column(
                                   children: [
                                     Text(
-                                      'Rata-Rata/Bulan',
+                                      'Rata-Rata Konsumsi',
                                       style: Get.theme.textTheme.headline4,
                                     ),
                                     SizedBox(height: 20),
@@ -255,65 +803,68 @@ class _StatisticState extends State<Statistic> {
                   ],
                 ),
               ),
-              SizedBox(height: 10.h),
               Container(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                child: Column(
+                  // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ListView.builder(
-                            scrollDirection: Axis.vertical,
-                            shrinkWrap: true,
-                            itemCount: 1,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Terbanyak/Bulan',
-                                      style: Get.theme.textTheme.headline4,
-                                    ),
-                                    SizedBox(height: 20),
-                                    Text(
-                                      rokok_terbanyak.toString(),
-                                      style: Get.theme.textTheme.headline1,
-                                    )
-                                  ],
+                    ListView.builder(
+                        scrollDirection: Axis.vertical,
+                        shrinkWrap: true,
+                        itemCount: 1,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                Container(
+                                  margin:
+                                      const EdgeInsets.only(top: 0, bottom: 0),
+                                  padding: const EdgeInsets.only(
+                                      right: 60.0,
+                                      top: 15,
+                                      bottom: 15,
+                                      left: 15),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(color: Colors.grey)),
+                                  child: Text(
+                                    'Jumlah Rokok Tertinggi Sebanyak ${rokok_terbanyak.toString()} Batang',
+                                    style: Get.theme.textTheme.headline4,
+                                  ),
                                 ),
-                              );
-                            }),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ListView.builder(
-                            scrollDirection: Axis.vertical,
-                            shrinkWrap: true,
-                            itemCount: 1,
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.all(20.0),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      'Terdikit/Bulan',
-                                      style: Get.theme.textTheme.headline4,
-                                    ),
-                                    SizedBox(height: 20),
-                                    Text(
-                                      rokok_terdikit.toString(),
-                                      style: Get.theme.textTheme.headline1,
-                                    )
-                                  ],
+                              ],
+                            ),
+                          );
+                        }),
+                    ListView.builder(
+                        scrollDirection: Axis.vertical,
+                        shrinkWrap: true,
+                        itemCount: 1,
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.all(20.0),
+                            child: Column(
+                              children: [
+                                Container(
+                                  margin:
+                                      const EdgeInsets.only(top: 0, bottom: 0),
+                                  padding: const EdgeInsets.only(
+                                      right: 60.0,
+                                      top: 15,
+                                      bottom: 15,
+                                      left: 15),
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(7),
+                                      border: Border.all(color: Colors.grey)),
+                                  child: Text(
+                                    'Jumlah Rokok Terendah Sebanyak ${rokok_terdikit.toString()} Batang',
+                                    style: Get.theme.textTheme.headline4,
+                                  ),
                                 ),
-                              );
-                            }),
-                      ),
-                    ),
+                              ],
+                            ),
+                          );
+                        }),
                   ],
                 ),
               ),
@@ -323,17 +874,30 @@ class _StatisticState extends State<Statistic> {
                   builder: (BuildContext context,
                       AsyncSnapshot<List<RokokChart>> snapshots) {
                     if (snapshots.hasData) {
-                      return Container(
-                        height: 250,
-                        padding: const EdgeInsets.all(10),
-                        child: CustomBarChart(rokokStats: snapshots.data!),
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Column(
+                          children: [
+                            const Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text("Jumlah")),
+                            Container(
+                              height: 250,
+                              padding: const EdgeInsets.all(10),
+                              child:
+                                  CustomBarChart(rokokStats: snapshots.data!),
+                            ),
+                            const Align(
+                                alignment: Alignment.center,
+                                child: Text("Tanggal"))
+                          ],
+                        ),
                       );
                     } else if (snapshots.hasError) {
-                      return Text('${snapshots.error}');
+                      return Text('data kosong');
+                    } else {
+                      return const Center(child: Text("data kosong"));
                     }
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.red),
-                    );
                   },
                 ),
               ),
@@ -349,14 +913,13 @@ class _StatisticState extends State<Statistic> {
                       return Container(
                         height: 250,
                         padding: const EdgeInsets.all(10),
-                        child: CustomPieChart(rokokStats: snapshots.data!),
+                        child: CustomLineChart(rokokStats: snapshots.data!),
                       );
                     } else if (snapshots.hasError) {
-                      return Text('${snapshots.error}');
+                      return Text('data kosong');
+                    } else {
+                      return const Center(child: Text("data kosong"));
                     }
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.red),
-                    );
                   },
                 ),
               ),
@@ -382,7 +945,7 @@ class _StatisticState extends State<Statistic> {
       '11': 'November',
       '12': 'December',
     };
-    return month[mt];
+    return month[mt].toString();
   }
 }
 
@@ -406,15 +969,19 @@ class CustomBarChart extends StatelessWidget {
       )
     ];
 
-    return charts.BarChart(
-      series,
-      animate: true,
-    );
+    if (series != null) {
+      return charts.BarChart(
+        series,
+        animate: true,
+      );
+    } else {
+      return Text('data kosong');
+    }
   }
 }
 
-class CustomPieChart extends StatelessWidget {
-  const CustomPieChart({
+class CustomLineChart extends StatelessWidget {
+  const CustomLineChart({
     Key? key,
     required this.rokokStats,
   }) : super(key: key);
@@ -423,19 +990,23 @@ class CustomPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    List<charts.Series<RokokChart, String>> series = [
+    List<charts.Series<RokokChart, int>> series = [
       charts.Series(
         id: 'jumlah',
         data: rokokStats,
-        domainFn: (series, _) => series.tanggal.toString(),
+        domainFn: (series, _) => int.parse(series.tanggal),
         measureFn: (series, _) => series.jumlah,
         colorFn: (series, _) => series.barColor!,
       )
     ];
 
-    return charts.PieChart(
-      series,
-      animate: true,
-    );
+    if (series != null) {
+      return charts.LineChart(
+        series,
+        animate: true,
+      );
+    } else {
+      return Text('data kosong');
+    }
   }
 }

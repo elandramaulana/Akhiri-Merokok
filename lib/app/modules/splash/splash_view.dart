@@ -8,12 +8,12 @@ class SplashView extends StatelessWidget {
       backgroundColor: Colors.white,
       body: Column(
         children: [
-          Image.asset(
-            'assets/images/logo.png',
-            width: 120,
-            height: 120,
-            fit: BoxFit.contain,
-          ),
+          // Image.asset(
+          //   'assets/images/logo.png',
+          //   width: 120,
+          //   height: 120,
+          //   fit: BoxFit.contain,
+          // ),
           const CircularProgressIndicator(),
         ],
       ),
